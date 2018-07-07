@@ -22,7 +22,18 @@ class QuotesSpider(scrapy.Spider):
                 'tags': quote.css('div.tags a.tag::text').extract()
             }
         
+        # response.follow supports relative URLs directly, no need to
+        # call urljoin
+        # response.follow returns a Request instance
         next_page = response.css('li.next a::attr(href)').extract_first()
         if next_page is not None:
-            next_page = response.urljoin(next_page)
-            yield scrapy.Request(next_page, callback = self.parse)
+            yield response.follow(next_page, callback = self.parse)
+            
+        # We can also pass a selector to response.follow instead of a string
+        for href in response.css('li.next a::attr(href)'):
+            yield response.follow(href, callback = self.parse)
+            
+        # for <a> elements, response.follow uses their href attribute
+        # automatically
+        for a in response.css('li.next a'):
+            yield response.follow(a, callback = self.parse)
